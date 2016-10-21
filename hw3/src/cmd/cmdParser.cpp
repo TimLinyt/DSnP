@@ -11,7 +11,7 @@
 #include <cstdlib>
 #include "util.h"
 #include "cmdParser.h"
-#define Stack_max_depth 10
+#define STACK_MAX_DEPTH 1024
 
 using namespace std;
 
@@ -31,16 +31,20 @@ CmdParser::openDofile(const string& dof)
 {
    // TODO...
    _dofile = new ifstream(dof.c_str());
-   if(!(*_dofile) || (_dofileStack.size() >= Stack_max_depth)) {
+   if(!(*_dofile)) {
       delete _dofile;
-      if (_dofileStack.size() >= Stack_max_depth) 
-         cout << "Error: dofile stack overflow (" << _dofileStack.size() 
-              << ")\n";
       if (_dofileStack.size() > 0) _dofile = _dofileStack.top();
       else _dofile = 0;
       return false;
    }
-   else _dofileStack.push(_dofile);
+   else if (_dofileStack.size() >= STACK_MAX_DEPTH) {
+      cout << "Error: dofile stack overflow (" << _dofileStack.size() 
+              << ")\n";
+      _dofile->close();
+      _dofile = _dofileStack.top();
+      return false;
+   }
+   _dofileStack.push(_dofile);
    return true;
 }
 
@@ -49,7 +53,8 @@ void
 CmdParser::closeDofile()
 {
    assert(_dofile != 0);
-   // TODO...
+   // TODO
+   _dofile->close();
    _dofileStack.pop();
    delete _dofile;
    if (_dofileStack.size() > 0) _dofile = _dofileStack.top();
