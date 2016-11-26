@@ -24,12 +24,12 @@ extern CirMgr *cirMgr;
 class CirMgr
 {
 public:
-   CirMgr(){}
+   CirMgr() {}
    ~CirMgr() {}
 
    // Access functions
    // return '0' if "gid" corresponds to an undefined gate.
-   CirGate* getGate(unsigned gid) const { return 0; }
+   CirGate* getGate(unsigned gid) const { return _vidgates[gid]; }
 
    // Member functions about circuit construction
    bool readCircuit(const string&);
@@ -39,10 +39,17 @@ public:
    void printNetlist() const;
    void printPIs() const;
    void printPOs() const;
-   void printFloatGates() const;
+   void printFloatGates();
    void writeAag(ostream&) const;
 
 private:
+   GateList _gates, _vidgates;
+   unsigned m, i, l, o, a;
+   IdList _pi, _po, _fl, _un, _ud;
+   bool _check_fl_un;
+
+   bool StrToUnsign(const string&, unsigned&); 
+   void linkFanio(const unsigned& gid, const unsigned& lid);
 };
 
 #endif // CIR_MGR_H

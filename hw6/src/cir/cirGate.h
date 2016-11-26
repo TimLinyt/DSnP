@@ -29,18 +29,85 @@ public:
    virtual ~CirGate() {}
 
    // Basic access methods
-   string getTypeStr() const { return ""; }
-   unsigned getLineNo() const { return 0; }
+   string getTypeStr() const { return _type; }
+   string getSymbolStr() const { return _symbol; }
+   unsigned getId() const { return _vId; } 
+   unsigned getLineNo() const { return _lineno; }
+   bool unused() const { return !(_out.size()); }
+
 
    // Printing functions
-   virtual void printGate() const = 0;
+   // virtual void printGate() const = 0;
    void reportGate() const;
    void reportFanin(int level) const;
    void reportFanout(int level) const;
 
+   // Setting functions_in
+   void setIn(CirGate* ng, bool inv) { _in.push_back(ng); 
+                                             _inv_in.push_back(inv); }
+   void setOut(CirGate* ng) { _out.push_back(ng); }
+   void setsymbol(const string& s) { _symbol = s; }
+
 private:
 
 protected:
+   string _type, _symbol;
+   unsigned _vId, _lineno;
+   GateList _in, _out;
+   vector<bool> _inv_in;
+
+};
+
+class CirPiGate : public CirGate
+{
+public:
+   CirPiGate(unsigned, unsigned);
+   ~CirPiGate() {};
+
+};
+
+class CirAigGate : public CirGate
+{
+public:
+   CirAigGate(unsigned*, unsigned);
+   ~CirAigGate() {};
+
+   unsigned* getFanin() { return _i; }
+
+private:
+  unsigned* _i;
+
+};
+
+class CirPoGate : public CirGate
+{
+public:
+   CirPoGate(unsigned, unsigned);
+   ~CirPoGate() {};
+   
+   unsigned getFanin() { return _i; }
+
+private:
+   unsigned _i;
+
+};
+
+class CirUndefGate : public CirGate
+{
+public:
+   CirUndefGate(unsigned);
+   ~CirUndefGate() {};
+
+   IdList getFanout();
+};
+
+class CirConstGate : public CirGate
+{
+public:
+   CirConstGate();
+   ~CirConstGate() {};
+
+
 
 };
 
