@@ -45,8 +45,7 @@ public:
 private:
    GateList _gates, _vidgates;
    unsigned m, i, l, o, a;
-   IdList _pi, _po, _fl, _un, _ud;
-   bool _check_fl_un;
+   IdList _undef;
 
    bool StrToUnsign(const string&, unsigned&); 
    void linkFanio(const unsigned& gid, const unsigned& lid);

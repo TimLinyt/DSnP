@@ -25,7 +25,7 @@ class CirGate;
 class CirGate
 {
 public:
-   CirGate() {}
+   CirGate() :_ref(0) {}
    virtual ~CirGate() {}
 
    // Basic access methods
@@ -35,16 +35,24 @@ public:
    unsigned getLineNo() const { return _lineno; }
    bool unused() const { return !(_out.size()); }
 
+   //dfs
+   static unsigned _globalRef;
+   unsigned        _ref;
+   bool isGlobalRef()  const { return ( _ref == _globalRef); }
+   void setToGlobalRef() { _ref = _globalRef; }
+   static void setGlobalRef() { _globalRef++; }
+   void dfsTraversal(IdList& dfsList);
+   void Fanin(int level, int nowlevel);
+   void Fanout(int level, int nowlevel);
 
    // Printing functions
-   // virtual void printGate() const = 0;
+   virtual void printGate() const = 0;
    void reportGate() const;
-   void reportFanin(int level) const;
-   void reportFanout(int level) const;
+   void reportFanin(int level);
+   void reportFanout(int level);
 
    // Setting functions_in
-   void setIn(CirGate* ng, bool inv) { _in.push_back(ng); 
-                                             _inv_in.push_back(inv); }
+   void setIn(CirGate* ng) { _in.push_back(ng); }
    void setOut(CirGate* ng) { _out.push_back(ng); }
    void setsymbol(const string& s) { _symbol = s; }
 
@@ -54,8 +62,6 @@ protected:
    string _type, _symbol;
    unsigned _vId, _lineno;
    GateList _in, _out;
-   vector<bool> _inv_in;
-
 };
 
 class CirPiGate : public CirGate
@@ -64,6 +70,7 @@ public:
    CirPiGate(unsigned, unsigned);
    ~CirPiGate() {};
 
+   void printGate() const;
 };
 
 class CirAigGate : public CirGate
@@ -72,6 +79,7 @@ public:
    CirAigGate(unsigned*, unsigned);
    ~CirAigGate() {};
 
+   void printGate() const;
    unsigned* getFanin() { return _i; }
 
 private:
@@ -82,9 +90,10 @@ private:
 class CirPoGate : public CirGate
 {
 public:
-   CirPoGate(unsigned, unsigned);
+   CirPoGate(unsigned, unsigned, unsigned);
    ~CirPoGate() {};
    
+   void printGate() const;
    unsigned getFanin() { return _i; }
 
 private:
@@ -98,6 +107,7 @@ public:
    CirUndefGate(unsigned);
    ~CirUndefGate() {};
 
+   void printGate() const;
    IdList getFanout();
 };
 
@@ -106,9 +116,8 @@ class CirConstGate : public CirGate
 public:
    CirConstGate();
    ~CirConstGate() {};
-
-
-
+   
+   void printGate() const;
 };
 
 #endif // CIR_GATE_H

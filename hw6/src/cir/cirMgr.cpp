@@ -217,7 +217,6 @@ CirMgr::readCircuit(const string& fileName)
       CirGate* ng = new CirPiGate(key, lineNo);
       _gates.push_back(ng);
       _vidgates[key/2] = ng;
-      _pi.push_back(key/2);
    }
 
    //Latch
@@ -231,7 +230,7 @@ CirMgr::readCircuit(const string& fileName)
 
          return false;
       }
-      CirGate* ng = new CirPoGate(key, lineNo);
+      CirGate* ng = new CirPoGate(key, m+n, lineNo);
       _gates.push_back(ng);
       _vidgates[m+n] = ng; 
    }
@@ -314,7 +313,6 @@ void
 CirMgr::linkFanio(const unsigned& gid, const unsigned& lid) 
 {
    unsigned vid = lid/2;
-   bool inv = lid%2;
    
    if (_vidgates[vid] == 0) {
       if (vid == 0) {
@@ -323,10 +321,10 @@ CirMgr::linkFanio(const unsigned& gid, const unsigned& lid)
       }
       else {
          _vidgates[vid] = new CirUndefGate(vid);
-         _ud.push_back(vid);
+         _undef.push_back(vid);
       }
    }
-   _vidgates[gid]->setIn(_vidgates[vid], inv);
+   _vidgates[gid]->setIn(_vidgates[vid]);
    _vidgates[vid]->setOut(_vidgates[gid]);
 }
 
@@ -359,7 +357,16 @@ CirMgr::printSummary() const
 void
 CirMgr::printNetlist() const
 {
-
+   IdList dsfList;
+   CirGate::setGlobalRef();
+   for (size_t n = 1; n <= o; n++) {
+      _vidgates[m+n]->dfsTraversal(dsfList);
+   }
+   for (size_t n = 0; n < dsfList.size(); n++) {
+      cout << "[" << n << "] ";
+      _vidgates[dsfList[n]]->printGate();
+      cout << endl; 
+   }
 }
 
 void
@@ -367,7 +374,7 @@ CirMgr::printPIs() const
 {
    cout << "PIs of the circuit:";
    for (size_t n = 0; n < i; n++) {
-      cout <<  ' ' << _pi[n];
+      cout <<  ' ' << _gates[n]->getId();
    }
    cout << endl;
 }
@@ -377,7 +384,6 @@ CirMgr::printPOs() const
 {
    cout << "POs of the circuit:";
    for (size_t n = 0; n < o; n++) {
-      //cout <<  ' ' << _po[n];
       cout << ' ' << m+n+1;
    }
    cout << endl;
@@ -386,28 +392,26 @@ CirMgr::printPOs() const
 void
 CirMgr::printFloatGates()
 {
-   if (!_check_fl_un) {
-      for (size_t n = 0; n < _ud.size(); n++) {
-         IdList temp = ((CirUndefGate*)_vidgates[_ud[n]])->getFanout();
-         for (size_t nn = 0; nn < temp.size(); nn ++) {
-            _fl.push_back(temp[nn]);
-         }
+   IdList _fl, _un;
+   for (size_t n = 0; n < _undef.size(); n++) {
+      IdList temp = ((CirUndefGate*)_vidgates[_undef[n]])->getFanout();
+      for (size_t nn = 0; nn < temp.size(); nn ++) {
+         _fl.push_back(temp[nn]);
       }
-
-      for (size_t n = 0; n < i; n++) {
-         if (_gates[n]->unused()) {
-            _un.push_back(_gates[n]->getId());
-         }
-      }
-      for (size_t n = 0; n < a; n++) {
-         if (_gates[i+l+o+n]->unused()) {
-            _un.push_back(_gates[i+l+o+n]->getId());
-         }
-      }
-      sort(_fl.begin(), _fl.end());
-      sort(_un.begin(), _un.end());
-      _check_fl_un = true;
    }
+
+   for (size_t n = 0; n < i; n++) {
+      if (_gates[n]->unused()) {
+         _un.push_back(_gates[n]->getId());
+      }
+   }
+   for (size_t n = 0; n < a; n++) {
+      if (_gates[i+l+o+n]->unused()) {
+         _un.push_back(_gates[i+l+o+n]->getId());
+      }
+   }
+   sort(_fl.begin(), _fl.end());
+   sort(_un.begin(), _un.end());
 
    cout << "Gates with floating fanin(s):";
    for (size_t n = 0; n < _fl.size(); n++) {
@@ -419,13 +423,14 @@ CirMgr::printFloatGates()
    for (size_t n = 0; n < _un.size(); n++) {
       cout <<  ' ' << _un[n];
    }
-
+   cout << endl;
 }
 
 void
 CirMgr::writeAag(ostream& outfile) const
 {
 }
+
 
 
 /**********************************************/
@@ -435,7 +440,6 @@ CirMgr::StrToUnsign(const string& token, unsigned& key) {
    for (size_t n = 0; n < token.size(); n++) {
       if (token[n] > '9' || token[n] < '0') {
 
-cout << "fuck u";
          return false;
       }
       key = (unsigned)(token[n] - '0') + 10 * key;
