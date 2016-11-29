@@ -152,11 +152,10 @@ parseError(CirParseError err)
 /**************************************************************/
 bool
 CirMgr::readCircuit(const string& fileName)
-{  
+{   
    fstream fin(fileName, ios::in);
    string line, token;
    unsigned miloa[5];
-
    if (!fin.is_open()) {
 
       return false;
@@ -214,14 +213,14 @@ CirMgr::readCircuit(const string& fileName)
 
          return false;
       }
-      CirGate* ng = new CirPiGate(key, lineNo);
+      CirGate* ng = new CirPiGate(key/2, lineNo);
       _gates.push_back(ng);
       _vidgates[key/2] = ng;
    }
 
    //Latch
-   
    //PO
+   vector<unsigned> _poArg;
    for (size_t n = 1; n <= o; ++n) {
       unsigned key = 0;
       getline(fin, line, '\n');
@@ -230,20 +229,22 @@ CirMgr::readCircuit(const string& fileName)
 
          return false;
       }
-      CirGate* ng = new CirPoGate(key, m+n, lineNo);
+      CirGate* ng = new CirPoGate(m+n, lineNo);
       _gates.push_back(ng);
       _vidgates[m+n] = ng; 
+      _poArg.push_back(key);
    }
-
    //AIG
+   vector< vector<unsigned> > _aigArg;
    for (size_t n = 0; n < a; ++n) {
-      unsigned* abc = new unsigned[3];
+      vector<unsigned> aaig;
+      unsigned key;
       getline(fin, line, '\n');
       ++lineNo;
       e = line.find_first_of(' ');
 
       for (size_t count = 0; count < 3; count ++) {
-         unsigned key = 0;
+         unsigned temp = 0;
          if (e == string::npos) {
 
             return false;
@@ -251,19 +252,21 @@ CirMgr::readCircuit(const string& fileName)
          e = line.find_first_of(' ');
          token = line.substr(0, e);
          line = line.substr(e+1);
-         if (!StrToUnsign(token, key)) {
+         if (!StrToUnsign(token, temp)) {
    
             return false;
          }
-         abc[count] = key;
+         if (count == 0) key = temp;
+         else aaig.push_back(temp);
       }
       if (e != string::npos) {
          
          return false;
       }
-      CirGate* ng = new CirAigGate(abc, lineNo);
+      CirGate* ng = new CirAigGate(key/2, lineNo);
       _gates.push_back(ng);
-      _vidgates [abc[0]/2] = ng;
+      _vidgates [key/2] = ng;
+      _aigArg.push_back(aaig);
    }
    //Symbol
    getline(fin, line, '\n');
@@ -295,16 +298,14 @@ CirMgr::readCircuit(const string& fileName)
       getline(fin, line, '\n');
    }
    //PO link
-   for (size_t n = 1; n <= o; n++) {
-      unsigned _i = ((CirPoGate*)_vidgates[m+n])->getFanin();
-      linkFanio(m+n, _i);
+   for (size_t n = 0; n < o; n++) {
+      linkFanio(m+n+1, _poArg[n]);
    }
    //Aig link
    for (size_t n = 0; n < a; n++) {
       unsigned _gid = _gates[i+l+o+n]->getId();
-      unsigned* _i = ((CirAigGate*)_vidgates[_gid])->getFanin();
-      linkFanio(_gid, _i[0]);
-      linkFanio(_gid, _i[1]);
+      linkFanio(_gid, _aigArg[n][0]);
+      linkFanio(_gid, _aigArg[n][1]);
    }
    return true;
 }
@@ -317,15 +318,14 @@ CirMgr::linkFanio(const unsigned& gid, const unsigned& lid)
    if (_vidgates[vid] == 0) {
       if (vid == 0) {
          _vidgates[0] = new CirConstGate();
-
       }
       else {
          _vidgates[vid] = new CirUndefGate(vid);
          _undef.push_back(vid);
       }
    }
-   _vidgates[gid]->setIn(_vidgates[vid]);
-   _vidgates[vid]->setOut(_vidgates[gid]);
+   _vidgates[gid]->setIn(CirGateV(_vidgates[vid], lid%2));
+   _vidgates[vid]->setOut(CirGateV(_vidgates[gid], lid%2));
 }
 
 
@@ -429,6 +429,38 @@ CirMgr::printFloatGates()
 void
 CirMgr::writeAag(ostream& outfile) const
 {
+   IdList dsfList, aiglist;
+   CirGate::setGlobalRef();
+   for (size_t n = 1; n <= o; n++) {
+      _vidgates[m+n]->dfsTraversal(dsfList);
+   }
+   for (size_t n = 0; n < dsfList.size(); n++) {
+      if (_vidgates[dsfList[n]]->getTypeStr() == "AIG") 
+         aiglist.push_back(dsfList[n]);
+   }
+   outfile << "aag " << m << ' ' << i << ' ' << l << ' ' << o << ' ';
+   outfile << aiglist.size() << endl;
+   for (size_t n = 0; n < i; n++) {
+      outfile << _gates[n]->getId()*2 << endl;
+   }
+   for (size_t n = 0; n < o; n++) {
+      outfile << (_gates[i+l+n]->getFaninlist())[0] << endl;
+   }
+   for (size_t n = 0; n < aiglist.size(); n++) {
+      outfile << aiglist[n]*2 << ' '; 
+      outfile << (_vidgates[aiglist[n]]->getFaninlist())[0] << ' ';
+      outfile << (_vidgates[aiglist[n]]->getFaninlist())[1] << endl;
+   }
+   for (size_t n = 0; n < i; n++) {
+      if (_gates[n]->getSymbolStr() != "") {
+         outfile << 'i' << n << ' ' << _gates[n]->getSymbolStr() << endl;
+      }
+   }
+   for (size_t n = 0; n < o; n++) {
+      if (_gates[i+l+n]->getSymbolStr() != "") {
+         outfile << 'o' << n << ' ' << _gates[n]->getSymbolStr() << endl;
+      }
+   }
 }
 
 

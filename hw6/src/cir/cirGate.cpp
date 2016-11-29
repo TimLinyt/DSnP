@@ -26,21 +26,33 @@ extern CirMgr *cirMgr;
 /**************************************/
 unsigned CirGate::_globalRef = 1;
 
+IdList
+CirGate::getFaninlist() const {
+   IdList temp;
+   for (size_t n = 0; n < _in.size(); n++) {
+      temp.push_back(_in[n].gate()->getId()*2 + _in[n].isInv());
+   }
+   return temp;
+}
+
 void 
 CirGate::dfsTraversal(IdList& dfsList) 
 {
    for (size_t n = 0; n < _in.size(); n++) {
-      if (!_in[n]->isGlobalRef()) {
-         _in[n]->setToGlobalRef();
-         _in[n]->dfsTraversal(dfsList);
+      if (!_in[n].gate()->isGlobalRef()) {
+         _in[n].gate()->setToGlobalRef();
+         _in[n].gate()->dfsTraversal(dfsList);
       }
    }
+   if (_type == "UNDEF") return;
    dfsList.push_back(_vId);
 }
 
 void
-CirGate::Fanin(int level, int nowlevel) 
+CirGate::Fanin(int level, int nowlevel, bool isInv) 
 {
+   for (size_t nn = 0; nn < nowlevel; nn++) { cout << "  "; }
+   if (isInv) cout << '!';
    cout << _type << ' ' << _vId;
    if (level > nowlevel && _in.size() > 0) {
       if (isGlobalRef()) {
@@ -50,24 +62,18 @@ CirGate::Fanin(int level, int nowlevel)
       else {
          cout << endl;
          for (size_t n = 0; n < _in.size(); n++) {
-            for (size_t nn = 0; nn < nowlevel+1; nn++) { cout << "  "; }
-            if (_type == "PO") {
-               if (((CirPoGate*)this)->getFanin()%2 == 1) cout << '!';
-            }
-            else if (_type == "AIG") {
-               unsigned* ii = ((CirAigGate*)this)->getFanin();
-               if (ii[n]%2 == 1) cout << '!';
-            }
-            _in[n]->Fanin(level, nowlevel+1);
+            _in[n].gate()->Fanin(level, nowlevel+1, _in[n].isInv());
          }
       }
    }
    else cout << endl;
-   CirGate::setToGlobalRef();
+   setToGlobalRef();
 }
 void
-CirGate::Fanout(int level, int nowlevel) 
+CirGate::Fanout(int level, int nowlevel, bool isInv) 
 {
+   for (size_t nn = 0; nn < nowlevel; nn++) { cout << "  "; }
+   if (isInv) cout << '!';
    cout << _type << ' ' << _vId;
    if (level > nowlevel && _out.size() > 0) {
       if (isGlobalRef()) {
@@ -77,19 +83,7 @@ CirGate::Fanout(int level, int nowlevel)
       else {
          cout << endl;
          for (size_t n = 0; n < _out.size(); n++) {
-            for (size_t nn = 0; nn < nowlevel+1; nn++) { cout << "  "; }
-            if (_out[n]->getTypeStr() == "PO") {
-               if (((CirPoGate*)_out[n])->getFanin()%2 == 1) cout << '!';
-            }
-            else if (_out[n]->getTypeStr() == "AIG") {
-               unsigned* ii = ((CirAigGate*)_out[n])->getFanin();
-               if (ii[0]/2 == ii[1]/2 && ii[0]%2 != ii[1]%2) {
-                  if (!n && ii[0]%2) cout << '!';
-               }
-               else if (ii[0]%2 == 1 && ii[0]/2 == _vId) cout << '!';
-               else if( ii[1]%2 == 1 && ii[1]/2 == _vId) cout << '!';
-            }
-            _out[n]->Fanout(level, nowlevel+1);
+            _out[n].gate()->Fanout(level, nowlevel+1, _out[n].isInv());
          }
       }
    }
@@ -116,7 +110,7 @@ CirGate::reportFanin(int level)
 {
    assert (level >= 0);
    setGlobalRef();
-   Fanin(level, 0);
+   Fanin(level, 0, 0);
 }
 
 void
@@ -124,7 +118,7 @@ CirGate::reportFanout(int level)
 {
    assert (level >= 0);
    setGlobalRef();
-   Fanout(level, 0);
+   Fanout(level, 0, 0);
 }
 
 void 
@@ -143,9 +137,9 @@ CirAigGate::printGate() const
    cout << "AIG " << _vId;
    for (size_t n = 0; n < 2; n++) {
       cout << ' ';
-      if (_in[n]->getTypeStr() == "UNDEF") cout << '*';
-      if (_i[n]%2 == 1) cout << '!';
-      cout << _i[n]/2;
+      if (_in[n].gate()->getTypeStr() == "UNDEF") cout << '*';
+      if (_in[n].isInv()%2 == 1) cout << '!';
+      cout << _in[n].gate()->getId();
    }
 }
 
@@ -154,9 +148,9 @@ void
 CirPoGate::printGate() const 
 {
    cout << "PO  " << _vId << ' ';
-   if (_in[0]->getTypeStr() == "UNDEF") cout << '*';
-   if (_i%2 == 1) cout << '!';
-   cout << _i/2;
+   if (_in[0].gate()->getTypeStr() == "UNDEF") cout << '*';
+   if (_in[0].isInv()%2 == 1) cout << '!';
+   cout << _in[0].gate()->getId();
    if (_symbol != "") {
       cout << " (" << _symbol << ")";
    }
@@ -173,29 +167,25 @@ CirConstGate::printGate() const
    cout << "CONST0";
 }
 
-CirPiGate::CirPiGate(unsigned lid, unsigned ln)
+CirPiGate::CirPiGate(unsigned vid, unsigned ln)
 {
    _type = "PI";
-   _vId = lid/2;
+   _vId = vid;
    _lineno = ln;   
 }
 
-CirAigGate::CirAigGate(unsigned* abc, unsigned ln)
+CirAigGate::CirAigGate(unsigned vid, unsigned ln)
 {
    _type = "AIG";
-   _vId = abc[0]/2;
+   _vId = vid;
    _lineno = ln;
-   _i = new unsigned[2];
-   _i[0] = abc[1];
-   _i[1] = abc[2];
 }
 
-CirPoGate::CirPoGate(unsigned oid,unsigned vid, unsigned ln)
+CirPoGate::CirPoGate(unsigned vid, unsigned ln)
 {
    _type = "PO";
    _vId = vid;
    _lineno = ln;
-   _i = oid;
 }
 
 CirUndefGate::CirUndefGate(unsigned id)
@@ -209,7 +199,7 @@ CirUndefGate::getFanout()
 {
    IdList temp;
    for (size_t n = 0; n < _out.size(); n ++) 
-      temp.push_back(_out[n]->getId());
+      temp.push_back(_out[n].gate()->getId());
    return temp;
 }
 
