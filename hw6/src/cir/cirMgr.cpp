@@ -152,67 +152,121 @@ parseError(CirParseError err)
 /**************************************************************/
 bool
 CirMgr::readCircuit(const string& fileName)
-{   
+{  
+   lineNo = 0;
+   
    fstream fin(fileName, ios::in);
    string line, token;
    unsigned miloa[5];
    if (!fin.is_open()) {
-
+      cerr << "Cannot open design \"" << fileName << "\"!!";
       return false;
    }
    
    //aag M I L O A
    getline(fin, line, '\n');
-   ++lineNo;
+   colNo = 0;
    //find aag 
    size_t e = line.find_first_of(' ');
    token = line.substr(0, e);  
    line = line.substr(e+1);
 
+   
    if (token != "aag") {
-      
-      return false;
+      errMsg = token;
+      return parseError(ILLEGAL_IDENTIFIER);
    }
+
+   colNo += e+1;
 
    //find MILOA
    for (size_t count = 0; count < 5; count ++) {
       unsigned key = 0;
       if (e == string::npos) {
+         errMsg = "number of ";
+         if (count == 0) errMsg += "variables";
+         else if (count == 1) errMsg += "PIs";
+         else if (count == 2) errMsg += "latches";
+         else if (count == 3) errMsg += "POs";
+         else if (count == 4) errMsg += "AIGs";
 
-         return false;
+         return parseError(MISSING_IDENTIFIER);
       }
       e = line.find_first_of(' ');
       token = line.substr(0, e);
       line = line.substr(e+1);
       if (!StrToUnsign(token, key)) {
+         errMsg = "number of ";
+         if (count == 0) errMsg += "variables";
+         else if (count == 1) errMsg += "PIs";
+         else if (count == 2) errMsg += "latches";
+         else if (count == 3) errMsg += "POs";
+         else if (count == 4) errMsg += "AIGs";
+         errMsg = errMsg + "(" + token + ")";
 
-         return false;
+         return parseError(ILLEGAL_NUM);
       }
       miloa[count] = key;
-      
+      colNo += e+1; 
    }
 
    if (e != string::npos) {
-
-      return false;
+      return parseError(MISSING_NEWLINE);
    }
+
    m = miloa[0];
    i = miloa[1];
    l = miloa[2];
    o = miloa[3];
    a = miloa[4];   
-   
+   if (m < i+l+a) {
+      errMsg = "Number of variables";
+      errInt = m;
+      return parseError(NUM_TOO_SMALL);
+   }
+   ++lineNo;
+
    _vidgates.resize(m+o+1);
 
    //PI
    for (size_t n = 0; n < i; ++n) {
       unsigned key = 0;
       getline(fin, line, '\n');
-      ++lineNo;
-      if (!StrToUnsign(line, key)) {
-
-         return false;
+      if (fin.eof()) {
+         errMsg = "PI";
+         return parseError(MISSING_DEF);
       }
+      colNo = 0;
+      e = line.find_first_of(' ');
+
+      if (!StrToUnsign(line, key)) {
+         errMsg = "PI literal ID(" + line + ")";
+         return parseError(ILLEGAL_NUM);
+      }
+      if (key/2 == 0) {
+         errInt  = key;
+         return parseError(REDEF_CONST);
+      }
+      if (key%2 == 1) {
+         errMsg = "PI";
+         errInt = key;
+         return parseError(CANNOT_INVERTED);
+      }
+      if (key > 2*m +1) {
+         errInt = key;
+         return parseError(MAX_LIT_ID);
+      }
+  
+      if (_vidgates[key/2] != 0) {
+         errInt = key;
+         errGate = _vidgates[key/2];
+         return parseError(REDEF_GATE);
+      }
+      colNo += e+1;
+      if (e != string::npos) {
+         return parseError(MISSING_NEWLINE);
+      }
+      ++lineNo;
       CirGate* ng = new CirPiGate(key/2, lineNo);
       _gates.push_back(ng);
       _vidgates[key/2] = ng;
@@ -224,11 +278,30 @@ CirMgr::readCircuit(const string& fileName)
    for (size_t n = 1; n <= o; ++n) {
       unsigned key = 0;
       getline(fin, line, '\n');
-      ++lineNo;
-      if (!StrToUnsign(line, key)) {
-
-         return false;
+      if (fin.eof()) {
+         errMsg = "PO";
+         return parseError(MISSING_DEF);
       }
+      colNo = 0;
+      e = line.find_first_of(' ');
+
+      if (line == "") {
+         errMsg = "PI literal ID";
+         return parseError(MISSING_IDENTIFIER);
+      }
+      if (!StrToUnsign(line, key)) {
+         errMsg = "PO literal ID(" + line + ")";
+         return parseError(ILLEGAL_NUM);
+      }
+      if (key > 2*m +1) {
+         errInt = key;
+         return parseError(MAX_LIT_ID);
+      }
+      colNo += e+1;
+      if (e != string::npos) {
+         return parseError(MISSING_NEWLINE);
+      }
+      ++lineNo;
       CirGate* ng = new CirPoGate(m+n, lineNo);
       _gates.push_back(ng);
       _vidgates[m+n] = ng; 
@@ -240,61 +313,134 @@ CirMgr::readCircuit(const string& fileName)
       vector<unsigned> aaig;
       unsigned key;
       getline(fin, line, '\n');
-      ++lineNo;
+      if (fin.eof()) {
+         errMsg = "AIG";
+         return parseError(MISSING_DEF);
+      }
+      colNo = 0;
       e = line.find_first_of(' ');
 
       for (size_t count = 0; count < 3; count ++) {
          unsigned temp = 0;
          if (e == string::npos) {
-
-            return false;
+            errMsg = "AIG literal ID";
+            return parseError(MISSING_IDENTIFIER);
          }
          e = line.find_first_of(' ');
          token = line.substr(0, e);
          line = line.substr(e+1);
+
          if (!StrToUnsign(token, temp)) {
-   
-            return false;
+            errMsg = "AIG literal ID(" + token + ")";
+            return parseError(ILLEGAL_NUM);
          }
+         if (temp%2 == 1 && count == 0) {
+            errMsg = "AIG";
+            errInt = temp;
+            return parseError(CANNOT_INVERTED);
+         }
+         if (temp > 2*m +1) {
+            errInt = temp;
+            return parseError(MAX_LIT_ID);
+         }
+         colNo += e+1;
          if (count == 0) key = temp;
          else aaig.push_back(temp);
       }
       if (e != string::npos) {
-         
-         return false;
+         return parseError(MISSING_NEWLINE);
       }
+
+      if (key/2 == 0) {
+         errInt  = key;
+         return parseError(REDEF_CONST);
+      }
+      if (_vidgates[key/2] != 0) {
+         errInt = key;
+         errGate = _vidgates[key/2];
+         return parseError(REDEF_GATE);
+      }
+
+      ++lineNo;
       CirGate* ng = new CirAigGate(key/2, lineNo);
       _gates.push_back(ng);
       _vidgates [key/2] = ng;
       _aigArg.push_back(aaig);
    }
    //Symbol
+   
    getline(fin, line, '\n');
+   if (line == "") {
+      errMsg = "";
+      return parseError(ILLEGAL_SYMBOL_TYPE);
+   }
    while(line != "") {
-      ++lineNo;
+      colNo = 0;
       e = line.find_first_of(' ');
       if (line[0] == 'i' || line[0] == 'o') {
          unsigned key = 0;
-         token = line.substr(1, e);
+         token = line.substr(1, e-1);
+         if (token == "" || e == string::npos) {
+            errMsg = "symbolic name";
+            return parseError(MISSING_IDENTIFIER);
+         }
          if (!StrToUnsign(token, key)) {
-            
-            return false;
+            errMsg = token;
+            return parseError(ILLEGAL_IDENTIFIER);
          }
          token = line.substr(e+1, string::npos);
-         if (line[0] == 'i') 
+         if (token == "") {
+            errMsg = "symbolic name";
+            return parseError(MISSING_IDENTIFIER);
+         }
+         colNo += e;
+         for (size_t n = 0; n < token.size(); n++) {
+            colNo++;
+            if(!isprint(int(token[n]))) { 
+               errInt = (int)token[n];
+               return parseError(ILLEGAL_SYMBOL_NAME);
+            }
+         }
+         if (line[0] == 'i') {
+            if (key >= i) {
+               errMsg = "PI index";
+               errInt = key;
+               return parseError(NUM_TOO_BIG);
+            }
+            if (_gates[key]->getSymbolStr() != "") {
+               errMsg = "i";
+               errInt = key;
+               return parseError(REDEF_SYMBOLIC_NAME);
+            }
             _gates[key]->setsymbol(token);
-         else
+         }
+         else {
+            if (key >= o) {
+               errMsg = "PO index";
+               errInt = key;
+               return parseError(NUM_TOO_BIG);
+            }
+            if (_gates[key+i+l]->getSymbolStr() != "") {
+               errMsg = "o";
+               errInt = key;
+               return parseError(REDEF_SYMBOLIC_NAME);
+            }
             _gates[key+i+l]->setsymbol(token);
+         }
       }
       //Comments
       else if (line[0] == 'c') {
          if (e != string::npos) {
-            
-            return false;
+            colNo += e+1;
+            return parseError(MISSING_NEWLINE);
          }
          break;
       }
-      else return false;
+      else {
+         errMsg = line[0];
+         return parseError(ILLEGAL_SYMBOL_TYPE);
+      }
+      ++lineNo;
       getline(fin, line, '\n');
    }
    //PO link
@@ -413,17 +559,20 @@ CirMgr::printFloatGates()
    sort(_fl.begin(), _fl.end());
    sort(_un.begin(), _un.end());
 
-   cout << "Gates with floating fanin(s):";
-   for (size_t n = 0; n < _fl.size(); n++) {
-      cout <<  ' ' << _fl[n];
-   }  
-   cout << endl;
-
-   cout << "Gates defined but not used  :";
-   for (size_t n = 0; n < _un.size(); n++) {
-      cout <<  ' ' << _un[n];
+   if (_fl.size()) {
+      cout << "Gates with floating fanin(s):";
+      for (size_t n = 0; n < _fl.size(); n++) {
+         cout <<  ' ' << _fl[n];
+      }  
+      cout << endl;
    }
-   cout << endl;
+   if (_un.size()) {
+      cout << "Gates defined but not used  :";
+      for (size_t n = 0; n < _un.size(); n++) {
+       cout <<  ' ' << _un[n];
+      }
+      cout << endl;
+   }
 }
 
 void
@@ -469,9 +618,9 @@ CirMgr::writeAag(ostream& outfile) const
 
 bool 
 CirMgr::StrToUnsign(const string& token, unsigned& key) {
+   if (token.size() == 0) return false;
    for (size_t n = 0; n < token.size(); n++) {
       if (token[n] > '9' || token[n] < '0') {
-
          return false;
       }
       key = (unsigned)(token[n] - '0') + 10 * key;

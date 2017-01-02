@@ -40,7 +40,7 @@ class CirGate
 {
 public:
    CirGate() :_ref(0) {}
-   virtual ~CirGate() {}
+   virtual ~CirGate() {_in.clear(); _out.clear();}
 
    // Basic access methods
    string getTypeStr() const { return _type; }

@@ -25,7 +25,13 @@ class CirMgr
 {
 public:
    CirMgr() {}
-   ~CirMgr() {}
+   ~CirMgr() { 
+      for (size_t n = 0; n < _vidgates.size(); n++) {
+         if (_vidgates[n]) delete _vidgates[n];
+      }
+      _gates.clear();
+      _vidgates.clear();
+   }
 
    // Access functions
    // return '0' if "gid" corresponds to an undefined gate.

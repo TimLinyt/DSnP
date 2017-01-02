@@ -1,0 +1,126 @@
+task> taski 5
+Task manager is initialized (5)
+
+task> taskn -r 20
+Task node inserted: (gpcbgx, 6761)
+Task node inserted: (bqbzmp, 17651)
+Task node inserted: (ubvxze, 9276)
+Task node inserted: (vjijwj, 3250)
+Task node inserted: (hwoolq, 12508)
+Task node inserted: (snzuea, 15153)
+Task node inserted: (rqqlsm, 6720)
+Task node inserted: (sruoad, 18086)
+Task node inserted: (wmbejq, 14364)
+Task node inserted: (vhinvh, 6192)
+Task node inserted: (zibrzs, 1934)
+Task node inserted: (selkwg, 18728)
+Task node inserted: (wjvtwx, 17845)
+Task node inserted: (fnpavy, 11262)
+Task node inserted: (qgwqpy, 5639)
+Task node inserted: (oqjhvv, 13351)
+Task node inserted: (rbpokl, 5494)
+Task node inserted: (gjemxu, 10393)
+Task node inserted: (stcizy, 19103)
+Task node inserted: (pxgeoq, 8791)
+... 20 new task nodes are added.
+
+task> taskq -hea
+(zibrzs, 1934)
+(vjijwj, 3250)
+(qgwqpy, 5639)
+(rbpokl, 5494)
+(vhinvh, 6192)
+(snzuea, 15153)
+(rqqlsm, 6720)
+(oqjhvv, 13351)
+(gjemxu, 10393)
+(pxgeoq, 8791)
+(gpcbgx, 6761)
+(selkwg, 18728)
+(wjvtwx, 17845)
+(fnpavy, 11262)
+(ubvxze, 9276)
+(sruoad, 18086)
+(wmbejq, 14364)
+(bqbzmp, 17651)
+(stcizy, 19103)
+(hwoolq, 12508)
+Number of tasks: 20
+
+task> taskr -n wgojtn
+
+task> taskq -hea
+(zibrzs, 1934)
+(vjijwj, 3250)
+(qgwqpy, 5639)
+(rbpokl, 5494)
+(vhinvh, 6192)
+(snzuea, 15153)
+(rqqlsm, 6720)
+(oqjhvv, 13351)
+(gjemxu, 10393)
+(pxgeoq, 8791)
+(gpcbgx, 6761)
+(selkwg, 18728)
+(wjvtwx, 17845)
+(fnpavy, 11262)
+(ubvxze, 9276)
+(sruoad, 18086)
+(wmbejq, 14364)
+(bqbzmp, 17651)
+(stcizy, 19103)
+(hwoolq, 12508)
+Number of tasks: 20
+
+task> taskr -r 2
+Task node removed: (oqjhvv, 13351)
+Task node removed: (gjemxu, 10393)
+... 2 task nodes are removed.
+
+task> taskq -hea
+(zibrzs, 1934)
+(vjijwj, 3250)
+(qgwqpy, 5639)
+(rbpokl, 5494)
+(vhinvh, 6192)
+(snzuea, 15153)
+(rqqlsm, 6720)
+(hwoolq, 12508)
+(bqbzmp, 17651)
+(pxgeoq, 8791)
+(gpcbgx, 6761)
+(selkwg, 18728)
+(wjvtwx, 17845)
+(fnpavy, 11262)
+(ubvxze, 9276)
+(sruoad, 18086)
+(wmbejq, 14364)
+(stcizy, 19103)
+Number of tasks: 18
+
+task> taskr -r 1
+Task node removed: (vjijwj, 3250)
+... 1 task nodes are removed.
+
+task> taskq -hea
+(zibrzs, 1934)
+(rbpokl, 5494)
+(qgwqpy, 5639)
+(hwoolq, 12508)
+(vhinvh, 6192)
+(snzuea, 15153)
+(rqqlsm, 6720)
+(wmbejq, 14364)
+(bqbzmp, 17651)
+(pxgeoq, 8791)
+(gpcbgx, 6761)
+(selkwg, 18728)
+(wjvtwx, 17845)
+(fnpavy, 11262)
+(ubvxze, 9276)
+(sruoad, 18086)
+(stcizy, 19103)
+Number of tasks: 17
+
+task> q -f
+

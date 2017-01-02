@@ -1,0 +1,10 @@
+taski 5
+taskn -r 20
+taskq -hea
+taskr -n wgojtn
+taskq -hea
+taskr -r 2
+taskq -hea
+taskr -r 1
+taskq -hea
+q -f
