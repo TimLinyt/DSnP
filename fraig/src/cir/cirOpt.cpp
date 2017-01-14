@@ -33,7 +33,22 @@ using namespace std;
 void
 CirMgr::sweep()
 {
+   /*updateDfsList();
+
+   for (size_t i = 1; i <= m; i++) {
+      if (!_vidgates[i]) {
+         if (_vidgates[i]->getTypeStr() == "PI") {}
+         else if (_vidgates[i]->isGlobalRef()) {}
+         else {
+            
+         }
+      }
+   }
+
+   updateFloating();
+   updateUnused();*/
 }
+
 
 // Recursively simplifying from POs;
 // _dfsList needs to be reconstructed afterwards

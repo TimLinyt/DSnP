@@ -30,7 +30,7 @@ public:
 
    // Access functions
    // return '0' if "gid" corresponds to an undefined gate.
-   CirGate* getGate(unsigned gid) const { return 0; }
+   CirGate* getGate(unsigned gid) const { return _vidgates[gid]; }
 
    // Member functions about circuit construction
    bool readCircuit(const string&);
@@ -61,7 +61,16 @@ public:
 
 private:
    ofstream           *_simLog;
+   GateList _gates, _vidgates;
+   unsigned _m, _i, _l, _o, _a;
+   IdList _dfsList, _floating, _unused;
 
+   bool StrToUnsign(const string&, unsigned&); 
+   void linkFanio(const unsigned& gid, const unsigned& lid);
+   
+   void updateDfsList();
+   void updateFloating();
+   void updateUnused();
 };
 
 #endif // CIR_MGR_H
