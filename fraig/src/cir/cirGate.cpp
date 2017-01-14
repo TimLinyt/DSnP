@@ -29,7 +29,7 @@ extern CirMgr *cirMgr;
 unsigned CirGate::_globalRef = 1;
 
 bool 
-CirGate::isfloat() const { 
+CirGate::isfloat() { 
    for (size_t z = 0; z < _in.size(); z++) {
       if (_in[z].gate()->getTypeStr() == "UNDEF") { 
          return true;
@@ -51,7 +51,7 @@ CirGate::dfsTraversal(IdList& dfsList)
    dfsList.push_back(_vId);
 }
 
-/*IdList
+IdList
 CirGate::getFaninlist() const {
    IdList temp;
    for (size_t n = 0; n < _in.size(); n++) {
@@ -59,7 +59,15 @@ CirGate::getFaninlist() const {
    }
    return temp;
 }
-*/
+
+IdList
+CirGate::getFanoutlist() const {
+   IdList temp;
+   for (size_t n = 0; n < _out.size(); n++) {
+      temp.push_back(_out[n].gate()->getId()*2 + _out[n].isInv());
+   }
+   return temp;
+}
 
 void
 CirGate::Fanin(int level, int nowlevel, bool isInv) 

@@ -458,7 +458,13 @@ CirMgr::readCircuit(const string& fileName)
    updateDfsList();
    updateFloating();
    updateUnused();
-   
+      updateDfsList();
+   updateFloating();
+   updateUnused();  updateDfsList();
+   updateFloating();
+   updateUnused();  updateDfsList();
+   updateFloating();
+   updateUnused();  
    return true;
 }
 
@@ -520,7 +526,7 @@ CirMgr::updateFloating()
 {
    _floating.clear();
    for (size_t z = 1, n = _vidgates.size(); z < n; z++) {
-      if (!_vidgates[z]) {
+      if (_vidgates[z]) {
          if (_vidgates[z]->isfloat()) {
             _floating.push_back(z);
          }
@@ -533,7 +539,7 @@ CirMgr::updateUnused()
 {
    _unused.clear();
    for (size_t z = 1, n = _vidgates.size()-_o; z < n; z++) {
-      if (!_vidgates[z]) {
+      if (_vidgates[z]) {
          if (_vidgates[z]->unused()) { 
             _unused.push_back(z);
          }
