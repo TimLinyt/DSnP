@@ -28,8 +28,31 @@ extern CirMgr *cirMgr;
 /**************************************/
 unsigned CirGate::_globalRef = 1;
 
+unsigned
+CirGate::simulate() 
+{
+   if (!isGlobalRef()) {
+      if (_type == "AIG") {
+         unsigned s0 = _in[0].gate()->simulate();
+         unsigned s1 = _in[1].gate()->simulate();
+         if (_in[0].isInv()) s0 = ~s0;
+         if (_in[1].isInv()) s1 = ~s1;
+         _simResult = s0 & s1;
+      }
+      else if (_type == "PO") { 
+         unsigned s0 = _in[0].gate()->simulate();
+         if (_in[0].isInv()) s0 = ~s0;
+         _simResult = s0;
+      }
+      setToGlobalRef();
+   }
+   return _simResult;
+}
+
+
 bool 
-CirGate::isfloat() { 
+CirGate::isfloat() 
+{ 
    for (size_t z = 0; z < _in.size(); z++) {
       if (_in[z].gate()->getTypeStr() == "UNDEF") { 
          return true;

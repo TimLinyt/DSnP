@@ -79,12 +79,19 @@ public:
    void replacein(CirGateV oldg, CirGateV newg);
    void setsymbol(const string& s) { _symbol = s; }
 
+   //sim
+   void setpisim(unsigned& sgn) { _simResult = sgn; }
+   unsigned simulate();
+   unsigned getSim() { return _simResult; }
+
 private:
 
 protected:
    string _type, _symbol;
    unsigned _vId, _lineno;
    vector<CirGateV>  _in, _out;
+   unsigned _simResult;
+
 };
 
 class CirPiGate : public CirGate

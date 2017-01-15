@@ -72,6 +72,11 @@ private:
    void updateFloating();
    void updateUnused();
    
+   void simulate(); 
+   void ptnToSim(vector<string>& ptns); 
+   void writeLog(vector<string>& ptns);
+   bool checkerr(string & str); 
+
    void MergeGate(CirGate* master, CirGate* slave);   
 };
 

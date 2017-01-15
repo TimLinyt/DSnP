@@ -504,7 +504,6 @@ CirMgr::printSummary() const
       }
    }
 
-
    cout << endl;
    cout << "Circuit Statistics" << endl;
    cout << "==================" << endl;
@@ -618,6 +617,8 @@ void
 CirMgr::writeGate(ostream& outfile, CirGate *g) const
 {
 }
+
+/********************************************************/
 
 bool 
 CirMgr::StrToUnsign(const string& token, unsigned& key) {
