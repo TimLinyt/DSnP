@@ -64,13 +64,15 @@ private:
    GateList _gates, _vidgates;
    unsigned _m, _i, _l, _o, _a;
    IdList _dfsList, _floating, _unused;
+   
 
    bool StrToUnsign(const string&, unsigned&); 
    void linkFanio(const unsigned& gid, const unsigned& lid);
-   
    void updateDfsList();
    void updateFloating();
    void updateUnused();
+   
+   void MergeGate(CirGate* master, CirGate* slave);   
 };
 
 #endif // CIR_MGR_H

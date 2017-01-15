@@ -458,13 +458,7 @@ CirMgr::readCircuit(const string& fileName)
    updateDfsList();
    updateFloating();
    updateUnused();
-      updateDfsList();
-   updateFloating();
-   updateUnused();  updateDfsList();
-   updateFloating();
-   updateUnused();  updateDfsList();
-   updateFloating();
-   updateUnused();  
+
    return true;
 }
 
@@ -499,14 +493,27 @@ Circuit Statistics
 *********************/
 void
 CirMgr::printSummary() const
-{   
+{ 
+   size_t piNum = 0, poNum = 0, aigNum = 0;
+
+   for (size_t i = 1; i <= _m+_o; i++) {
+      if (_vidgates[i]) {
+         if (_vidgates[i]->getTypeStr() == "PI") piNum++;
+         else if (_vidgates[i]->getTypeStr() == "PO") poNum++;
+         else if (_vidgates[i]->getTypeStr() == "AIG") aigNum++;
+      }
+   }
+
+
+   cout << endl;
    cout << "Circuit Statistics" << endl;
    cout << "==================" << endl;
-   cout << "  " << setw(7) << left << "PI" << setw(7) << right << _i << endl;
-   cout << "  " << setw(7) << left << "PO" << setw(7) << right << _o << endl;
-   cout << "  " << setw(7) << left << "AIG" << setw(7) << right << _a << endl;
+   cout << "  " << setw(7) << left << "PI" << setw(7) << right << piNum << endl;
+   cout << "  " << setw(7) << left << "PO" << setw(7) << right << poNum << endl;
+   cout << "  " << setw(7) << left << "AIG" << setw(7) << right <<aigNum<< endl;
    cout << "------------------" << endl;
-   cout << "  " << setw(7) << left << "Total" << setw(7) << right << _i+_o+_a;
+   cout << "  " << setw(7) << left << "Total";
+   cout << setw(7) << right << piNum + poNum + aigNum;
    cout << endl;
 }
 

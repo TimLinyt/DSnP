@@ -75,22 +75,8 @@ public:
    // Setting functions_in
    void setIn(CirGateV ng) { _in.push_back(ng); }
    void setOut(CirGateV ng) { _out.push_back(ng); }
-   void deleteOut(CirGate* g) { 
-      for (int i = _out.size() - 1; i >= 0; i--) {
-         if (_out[i].gate() == g) {
-            _out.erase(_out.begin() + i);
-            break;
-         }
-      }
-   }
-   void replacein(CirGateV oldg, CirGateV newg) { 
-      for (int i = 0; i < _in.size(); i++) {
-         if (_in[i].gate() == oldg.gate() && _in[i].isInv() == oldg.isInv()) {
-            _in[i] = newg;
-            break;
-         }
-      }
-   }
+   void deleteOut(CirGate* g);
+   void replacein(CirGateV oldg, CirGateV newg);
    void setsymbol(const string& s) { _symbol = s; }
 
 private:
