@@ -80,17 +80,21 @@ public:
    void setsymbol(const string& s) { _symbol = s; }
 
    //sim
-   void setpisim(unsigned& sgn) { _simResult = sgn; }
-   unsigned simulate();
-   unsigned getSim() { return _simResult; }
-
+   void setpisim(size_t& sgn) { _simResult = sgn; }
+   void simulate();
+   size_t getSim() { return _simResult; }
+   void setgrpNo(size_t n) { _grpNo = n; }
+   unsigned getgrpNo() { return _grpNo; }
+   void setfec(GateList* fec) {_fec = fec;}
 private:
 
 protected:
    string _type, _symbol;
    unsigned _vId, _lineno;
    vector<CirGateV>  _in, _out;
-   unsigned _simResult;
+   size_t _simResult;
+   unsigned _grpNo;
+   GateList* _fec;   
 
 };
 

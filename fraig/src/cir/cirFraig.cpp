@@ -64,7 +64,7 @@ private:
 void
 CirMgr::strash()
 {
-   HashSet<StrashNode> shash( _a * 10);
+   HashSet<StrashNode> shash( getHashSize(_a));
 
    for (size_t i = 1; i <= _m; i++) {
       if (_vidgates[i]) {
@@ -99,7 +99,7 @@ CirMgr::MergeGate(CirGate* master, CirGate* slave)
    cout << "Strashing: " << master->getId() << " merging " ;
    cout << slave->getId() << "..." << endl;
    IdList slist = slave->getFanoutlist();
-   for (int z = 0; z < slist.size(); z++) {
+   for (int z = 0, zn = slist.size(); z < zn; z++) {
       _vidgates[slist[z]/2]->replacein(
             CirGateV(slave, slist[z]%2),
             CirGateV(master, slist[z]%2));

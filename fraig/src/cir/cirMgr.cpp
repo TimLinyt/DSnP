@@ -227,6 +227,7 @@ CirMgr::readCircuit(const string& fileName)
 
    _vidgates.resize(_m+_o+1);
 
+   _vidgates[0] = new CirConstGate();
    //PI
    for (size_t n = 0; n < _i; ++n) {
       unsigned key = 0;
@@ -394,7 +395,7 @@ CirMgr::readCircuit(const string& fileName)
                return parseError(MISSING_IDENTIFIER);
             }
             colNo += e;
-            for (size_t n = 0; n < token.size(); n++) {
+            for (size_t n = 0, nn = token.size();  n < nn; n++) {
                colNo++;
                if(!isprint(int(token[n]))) { 
                   errInt = (int)token[n];
@@ -468,12 +469,7 @@ CirMgr::linkFanio(const unsigned& gid, const unsigned& lid)
    unsigned vid = lid/2;
    
    if (_vidgates[vid] == 0) {
-      if (vid == 0) {
-         _vidgates[0] = new CirConstGate();
-      }
-      else {
-         _vidgates[vid] = new CirUndefGate(vid);
-      }
+      _vidgates[vid] = new CirUndefGate(vid);
    }
    _vidgates[gid]->setIn(CirGateV(_vidgates[vid], lid%2));
    _vidgates[vid]->setOut(CirGateV(_vidgates[gid], lid%2));
@@ -589,14 +585,14 @@ CirMgr::printFloatGates() const
 {
    if (_floating.size()) {
       cout << "Gates with floating fanin(s):";
-      for (size_t n = 0; n < _floating.size(); n++) {
+      for (size_t n = 0, nn = _floating.size(); n < nn; n++) {
          cout <<  ' ' << _floating[n];
       }  
       cout << endl;
    }
    if (_unused.size()) {
       cout << "Gates defined but not used  :";
-      for (size_t n = 0; n < _unused.size(); n++) {
+      for (size_t n = 0, nn = _unused.size(); n < nn; n++) {
        cout <<  ' ' << _unused[n];
       }
       cout << endl;
@@ -622,7 +618,7 @@ CirMgr::writeGate(ostream& outfile, CirGate *g) const
 
 bool 
 CirMgr::StrToUnsign(const string& token, unsigned& key) {
-   for (size_t n = 0; n < token.size(); n++) {
+   for (size_t n = 0, nn = token.size(); n < nn; n++) {
       if (token[n] > '9' || token[n] < '0') {
 
          return false;

@@ -28,32 +28,33 @@ extern CirMgr *cirMgr;
 /**************************************/
 unsigned CirGate::_globalRef = 1;
 
-unsigned
+//size_t
+void
 CirGate::simulate() 
 {
-   if (!isGlobalRef()) {
+   //if (!isGlobalRef()) {
       if (_type == "AIG") {
-         unsigned s0 = _in[0].gate()->simulate();
-         unsigned s1 = _in[1].gate()->simulate();
+         size_t s0 = _in[0].gate()->getSim();
+         size_t s1 = _in[1].gate()->getSim();
          if (_in[0].isInv()) s0 = ~s0;
          if (_in[1].isInv()) s1 = ~s1;
          _simResult = s0 & s1;
       }
       else if (_type == "PO") { 
-         unsigned s0 = _in[0].gate()->simulate();
+         size_t s0 = _in[0].gate()->getSim();
          if (_in[0].isInv()) s0 = ~s0;
          _simResult = s0;
       }
-      setToGlobalRef();
-   }
-   return _simResult;
+      //setToGlobalRef();
+   //}
+   //return _simResult;
 }
 
 
 bool 
 CirGate::isfloat() 
 { 
-   for (size_t z = 0; z < _in.size(); z++) {
+   for (size_t z = 0, zn = _in.size(); z < zn; z++) {
       if (_in[z].gate()->getTypeStr() == "UNDEF") { 
          return true;
       }
@@ -64,7 +65,7 @@ CirGate::isfloat()
 void 
 CirGate::dfsTraversal(IdList& dfsList) 
 {
-   for (size_t n = 0; n < _in.size(); n++) {
+   for (size_t n = 0, nn = _in.size(); n < nn; n++) {
       if (!_in[n].gate()->isGlobalRef()) {
          _in[n].gate()->setToGlobalRef();
          _in[n].gate()->dfsTraversal(dfsList);
@@ -77,7 +78,7 @@ CirGate::dfsTraversal(IdList& dfsList)
 IdList
 CirGate::getFaninlist() const {
    IdList temp;
-   for (size_t n = 0; n < _in.size(); n++) {
+   for (size_t n = 0, nn = _in.size(); n < nn; n++) {
       temp.push_back(_in[n].gate()->getId()*2 + _in[n].isInv());
    }
    return temp;
@@ -86,7 +87,7 @@ CirGate::getFaninlist() const {
 IdList
 CirGate::getFanoutlist() const {
    IdList temp;
-   for (size_t n = 0; n < _out.size(); n++) {
+   for (size_t n = 0, nn = _out.size(); n < nn; n++) {
       temp.push_back(_out[n].gate()->getId()*2 + _out[n].isInv());
    }
    return temp;
@@ -163,13 +164,33 @@ CirGate::replacein(CirGateV oldg, CirGateV newg)
 void
 CirGate::reportGate() const
 {
-   stringstream ss;
+   stringstream ss, sss, ssss;
+   cout << "==================================================\n";
    ss << "= " << getTypeStr() << '(' << getId() << ')';
    if (_symbol != "") 
       ss << "\"" << getSymbolStr() << "\"";
-   ss << ", line" << getLineNo();
-   cout << "==================================================\n";
+   ss << ", line " << getLineNo();
    cout << setw(49) << left << ss.str() << "=\n";
+
+   sss << "= FECs: ";
+   size_t isinv = _simResult & 1;
+   if (_fec) {
+      for (size_t i = 0, in = _fec->size(); i < in; i++) {  
+         if (((*_fec)[i]->getSim() & 1) != (isinv)) sss << "!";
+         unsigned temp = (*_fec)[i]->getId();
+         if(temp != _vId) sss << temp << " ";
+      } 
+   }
+   cout << setw(49) << left << sss.str() << "=\n";
+
+   ssss << "= Value: ";
+   for (size_t i = 0; i < 32; i++) {
+      if (i && i%4 == 0) ssss << "_";
+      ssss << ((_simResult >> (i)) & 1);
+   }
+   cout << setw(49) << left << ssss.str() << "=\n";
+   
+   
    cout << "==================================================\n";
 }
 

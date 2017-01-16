@@ -14,6 +14,7 @@
 #include "cirMgr.h"
 #include "cirGate.h"
 #include "util.h"
+#include "../util/myHashSet.h"
 
 using namespace std;
 
@@ -23,7 +24,44 @@ using namespace std;
 /*******************************/
 /*   Global variable and enum  */
 /*******************************/
+class SimNode
+{
+public:
+   SimNode() {}
+   SimNode(CirGate* g) { 
+      _gate = g; 
+      _value = _gate->getSim();
+      if (_value & 1) _value = ~_value;
+      //_isInv = (_value & 1);
+   }
+   ~SimNode() {};
 
+   size_t operator() () const {
+      //if (_isInv) return ~_value;
+      //else return _value;
+      return _value;
+   }
+
+   bool operator == (const SimNode& s) const { 
+      //return ((_isInv) ? (~_value == s()) : (_value == s())); 
+      return _value == s._value;
+   }
+
+   SimNode& operator = (const SimNode& s) {
+      _gate = s._gate;
+      _value = s._value;
+      //_isInv = s._isInv;
+      return *this;
+   }
+
+   
+   CirGate* _gate;
+private:
+   size_t _value;
+   //bool _isInv;
+};
+
+bool comparefec (CirGate* i, CirGate* j) { return (i->getId() < j->getId()); }
 /**************************************/
 /*   Static varaibles and functions   */
 /**************************************/
@@ -42,50 +80,135 @@ CirMgr::fileSim(ifstream& patternFile)
 {
    string   str;
    vector<string> ptns;
+   ptns.resize(64);
    int counter = 0;
-
+   fecInit();
    while (patternFile >> str) {
       if (!checkerr(str)) return;
-      ptns.push_back(str);
+      //ptns.push_back(str);
+      ptns[counter%64] = str;
       counter ++;
       
-      if (counter%32 == 0) {
+      if (counter%64 == 0) {
          //ptn to sim
          ptnToSim(ptns);  
          simulate();
          //FEC
-      
+         identifyFEC(); 
          //write log
          if (_simLog) writeLog(ptns);
-         ptns.clear();
-      } 
+         //ptns.clear(); 
+      }  
    }
    
-   if (counter%32 != 0) {
+   if (counter%64 != 0) {
       //ptn to sim
-      ptnToSim(ptns);  
+      ptnToSim(ptns, counter%64);  
       simulate();
       //FEC
-
+      identifyFEC();
       //write log
       if (_simLog) writeLog(ptns);
-      ptns.clear();
+      //ptns.clear();
+   }
+   
+   for (size_t i = 0, in = _fecGrps.size(); i < in; i++ ) {
+      sort( _fecGrps[i].begin(), _fecGrps[i].end(), comparefec);
    }
 
+   CirGate::setGlobalRef();
+   for (unsigned i = 0, in = _fecGrps.size(); i < in; i++ ) {
+      for (unsigned j = 0, jn = _fecGrps[i].size(); j < jn; j++) {
+         _fecGrps[i][j]->setfec(&_fecGrps[i]);
+         _fecGrps[i][j]->setToGlobalRef();
+      }
+   }
+   for (size_t i = 0; i <= _m; i++) {
+      if(_vidgates[i]) {
+         if(!_vidgates[i]->isGlobalRef()) {
+            _vidgates[i]->setfec(0);
+         }
+      }
+   }
+   
+
    cout << counter << " patterns simulated." << endl;
+/*for (size_t i = 0; i < _fecGrps.size(); i++) {
+   for (size_t j = 0; j < _fecGrps[i].size(); j++) {
+      cerr << _fecGrps[i][j]->getId() << " ";
+   }
+   cerr << endl;
+}*/
 }
 
 /*************************************************/
 /*   Private member functions about Simulation   */
 /*************************************************/
-void 
-CirMgr::ptnToSim (vector<string>& ptns) 
+void
+CirMgr::fecInit()
 {
-   size_t n = ptns.size();
+   if (_fecGrps.size() == 0) {
+      GateList initfecGrp;
+      initfecGrp.push_back(_vidgates[0]);
+      for (size_t i = 0, in = _dfsList.size(); i < in; i++) {
+         if (_vidgates[_dfsList[i]]->getTypeStr() == "AIG") {
+            initfecGrp.push_back(_vidgates[_dfsList[i]]);
+         }
+      }
+      _fecGrps.push_back(initfecGrp);
+   }
+}
+
+void
+CirMgr::identifyFEC()
+{
+   vector<GateList> tempGrps;
+   unsigned counter = 0;
+
+   CirGate::setGlobalRef();
+   
+   for (size_t i = 0, in = _fecGrps.size(); i < in; i++) {
+      HashSet<SimNode> newFecGrps( getHashSize(_fecGrps[i].size()) );
+      //each grp
+      for (size_t j = 0, jn = _fecGrps[i].size(); j < jn; j++) {
+         SimNode sNode = SimNode(_fecGrps[i][j]);
+         if (newFecGrps.query(sNode)) { // already exist 
+            //create grp
+            if (!sNode._gate->isGlobalRef()) {
+               sNode._gate->setToGlobalRef();
+               GateList grp;
+               grp.push_back(sNode._gate);
+               grp.push_back(_fecGrps[i][j]);
+               sNode._gate->setgrpNo(counter);
+               tempGrps.push_back(grp);
+               counter ++;
+            }
+            //add to grp
+            else {
+               tempGrps[sNode._gate->getgrpNo()].push_back(_fecGrps[i][j]);
+            }
+         }
+         else { // add to hash
+            newFecGrps.insert(sNode);
+         }
+      }
+   }
+   _fecGrps.clear();
+   _fecGrps.swap(tempGrps);
+
+   cout << "Total #FEC Group = " << _fecGrps.size() << char(13) << flush;;
+}
+
+
+   
+void 
+CirMgr::ptnToSim (vector<string>& ptns, size_t count) 
+{
+   size_t n = count;
    for (size_t i = 0; i < _i; i ++) {
-      unsigned temp = 0;
+      size_t temp = 0;
       for (size_t j = 0; j < n; j++) {
-         temp = (temp << 1) | (unsigned)(ptns[j][i] - '0');
+         temp = (temp << 1) | (size_t)(ptns[j][i] - '0');
       }
       _vidgates[i+1]->setpisim(temp);
    }
@@ -98,7 +221,7 @@ CirMgr::writeLog(vector<string>& ptns)
    for (size_t i = 0; i < n; i++) {
       *_simLog << ptns[i] << " ";
       for (size_t j = 1; j <= _o; j++) { 
-         unsigned temp = _vidgates[_m+j]->getSim();
+         size_t temp = _vidgates[_m+j]->getSim();
          *_simLog << ((temp >> (n - i - 1)) & 1 );
       }
       *_simLog << endl;
@@ -127,10 +250,10 @@ CirMgr::checkerr(string & str)
 void 
 CirMgr::simulate() 
 {
-   CirGate::setGlobalRef();
-   for (size_t i = 1; i <= _i; i++) {
-      _vidgates[i]->setToGlobalRef();
-   }
+   //CirGate::setGlobalRef();
+   //for (size_t i = 1; i <= _i; i++) {
+   //   _vidgates[i]->setToGlobalRef();
+   //}
    for (size_t i = 0, n = _dfsList.size(); i < n; i++) {
       _vidgates[_dfsList[i]]->simulate();
    }

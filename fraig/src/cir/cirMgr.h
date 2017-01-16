@@ -62,6 +62,7 @@ public:
 private:
    ofstream           *_simLog;
    GateList _gates, _vidgates;
+   vector<GateList> _fecGrps;
    unsigned _m, _i, _l, _o, _a;
    IdList _dfsList, _floating, _unused;
    
@@ -72,8 +73,10 @@ private:
    void updateFloating();
    void updateUnused();
    
+   void fecInit();
+   void identifyFEC();
    void simulate(); 
-   void ptnToSim(vector<string>& ptns); 
+   void ptnToSim(vector<string>& ptns, size_t count = 64); 
    void writeLog(vector<string>& ptns);
    bool checkerr(string & str); 
 
