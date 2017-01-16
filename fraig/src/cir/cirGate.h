@@ -43,7 +43,7 @@ public:
    CirGate(){}
    virtual ~CirGate() {}
    // Basic access methods
-   string getTypeStr() const { return _type; }
+   virtual string getTypeStr() const {return "";}
    string getSymbolStr() const { return _symbol; }
    unsigned getLineNo() const { return _lineno; }
    virtual bool isAig() const { return false; }
@@ -58,7 +58,7 @@ public:
    unsigned getId() const { return _vId; } 
    IdList getFaninlist() const;
    IdList getFanoutlist() const;
-   bool unused() const { return !(_type == "PO" || _out.size()); }
+   bool unused() const { return !(getTypeStr() == "PO" || _out.size()); }
    bool isfloat();
    
 
@@ -81,7 +81,7 @@ public:
 
    //sim
    void setpisim(size_t& sgn) { _simResult = sgn; }
-   void simulate();
+   virtual void simulate() = 0;
    size_t getSim() { return _simResult; }
    void setgrpNo(size_t n) { _grpNo = n; }
    unsigned getgrpNo() { return _grpNo; }
@@ -89,7 +89,7 @@ public:
 private:
 
 protected:
-   string _type, _symbol;
+   string  _symbol;
    unsigned _vId, _lineno;
    vector<CirGateV>  _in, _out;
    size_t _simResult;
@@ -104,6 +104,8 @@ public:
    CirPiGate(unsigned, unsigned);
    ~CirPiGate() {};
 
+   string getTypeStr() const { return "PI"; };
+   void simulate() { }
    void printGate() const;
 };
 
@@ -113,6 +115,8 @@ public:
    CirAigGate(unsigned, unsigned);
    ~CirAigGate() {};
    
+   string getTypeStr() const { return "AIG"; };
+   void simulate();
    bool isAig() const { return true; }
    void printGate() const;
 
@@ -124,6 +128,8 @@ public:
    CirPoGate(unsigned, unsigned);
    ~CirPoGate() {};
    
+   string getTypeStr() const { return "PO"; };
+   void simulate();
    void printGate() const;
 };
 
@@ -133,6 +139,8 @@ public:
    CirUndefGate(unsigned);
    ~CirUndefGate() {};
 
+   string getTypeStr() const { return "UNDEF"; };
+   void simulate() {}
    void printGate() const;
 };
 
@@ -142,6 +150,8 @@ public:
    CirConstGate();
    ~CirConstGate() {};
    
+   string getTypeStr() const { return "CONST"; };
+   void simulate() { }
    void printGate() const;
 };
 #endif // CIR_GATE_H

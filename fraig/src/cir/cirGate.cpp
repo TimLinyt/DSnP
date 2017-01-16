@@ -30,24 +30,21 @@ unsigned CirGate::_globalRef = 1;
 
 //size_t
 void
-CirGate::simulate() 
+CirPoGate::simulate() 
 {
-   //if (!isGlobalRef()) {
-      if (_type == "AIG") {
-         size_t s0 = _in[0].gate()->getSim();
-         size_t s1 = _in[1].gate()->getSim();
-         if (_in[0].isInv()) s0 = ~s0;
-         if (_in[1].isInv()) s1 = ~s1;
-         _simResult = s0 & s1;
-      }
-      else if (_type == "PO") { 
-         size_t s0 = _in[0].gate()->getSim();
-         if (_in[0].isInv()) s0 = ~s0;
-         _simResult = s0;
-      }
-      //setToGlobalRef();
-   //}
-   //return _simResult;
+   size_t s0 = _in[0].gate()->getSim();
+   if (_in[0].isInv()) s0 = ~s0;
+   _simResult = s0;
+}
+
+void
+CirAigGate::simulate()
+{
+   size_t s0 = _in[0].gate()->getSim();
+   size_t s1 = _in[1].gate()->getSim();
+   if (_in[0].isInv()) s0 = ~s0;
+   if (_in[1].isInv()) s1 = ~s1;
+   _simResult = s0 & s1;
 }
 
 
@@ -71,7 +68,7 @@ CirGate::dfsTraversal(IdList& dfsList)
          _in[n].gate()->dfsTraversal(dfsList);
       }
    }
-   if (_type == "UNDEF") return;
+   if (getTypeStr() == "UNDEF") return;
    dfsList.push_back(_vId);
 }
 
@@ -98,7 +95,7 @@ CirGate::Fanin(int level, int nowlevel, bool isInv)
 {
    for (size_t nn = 0; nn < nowlevel; nn++) { cout << "  "; }
    if (isInv) cout << '!';
-   cout << _type << ' ' << _vId;
+   cout << getTypeStr() << ' ' << _vId;
    if (level > nowlevel && _in.size() > 0) {
       if (isGlobalRef()) {
          cout << " (*)";
@@ -121,7 +118,7 @@ CirGate::Fanout(int level, int nowlevel, bool isInv)
 {
    for (size_t nn = 0; nn < nowlevel; nn++) { cout << "  "; }
    if (isInv) cout << '!';
-   cout << _type << ' ' << _vId;
+   cout << getTypeStr() << ' ' << _vId;
    if (level > nowlevel && _out.size() > 0) {
       if (isGlobalRef()) {
          cout << " (*)";
@@ -259,33 +256,28 @@ CirConstGate::printGate() const
 //construct functions
 CirPiGate::CirPiGate(unsigned vid, unsigned ln)
 {
-   _type = "PI";
    _vId = vid;
    _lineno = ln;   
 }
 
 CirAigGate::CirAigGate(unsigned vid, unsigned ln)
 {
-   _type = "AIG";
    _vId = vid;
    _lineno = ln;
 }
 
 CirPoGate::CirPoGate(unsigned vid, unsigned ln)
 {
-   _type = "PO";
    _vId = vid;
    _lineno = ln;
 }
 
 CirUndefGate::CirUndefGate(unsigned id)
 {
-   _type = "UNDEF";
    _vId = id;
 }
  
 CirConstGate::CirConstGate()
 {
-   _type = "CONST";
    _vId = 0;
 }

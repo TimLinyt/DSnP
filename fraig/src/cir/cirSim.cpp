@@ -8,9 +8,11 @@
 
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <iomanip>
 #include <algorithm>
 #include <cassert>
+#include <bitset>
 #include "cirMgr.h"
 #include "cirGate.h"
 #include "util.h"
@@ -168,6 +170,18 @@ CirMgr::identifyFEC()
    CirGate::setGlobalRef();
    
    for (size_t i = 0, in = _fecGrps.size(); i < in; i++) {
+      //trival condition -> no need to use hash
+      if (_fecGrps[i].size() == 2) {
+         SimNode sNode0(_fecGrps[i][0]), sNode1(_fecGrps[i][1]);
+         if (sNode0 == sNode1) {
+            GateList grp;
+            grp.push_back(_fecGrps[i][0]);
+            grp.push_back(_fecGrps[i][1]);
+            tempGrps.push_back(grp);
+            counter++;
+         }
+         continue;
+      }
       HashSet<SimNode> newFecGrps( getHashSize(_fecGrps[i].size()) );
       //each grp
       for (size_t j = 0, jn = _fecGrps[i].size(); j < jn; j++) {
@@ -212,6 +226,7 @@ CirMgr::ptnToSim (vector<string>& ptns, size_t count)
       }
       _vidgates[i+1]->setpisim(temp);
    }
+
 }
 
 void
