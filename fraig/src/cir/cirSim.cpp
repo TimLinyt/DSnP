@@ -13,6 +13,8 @@
 #include <algorithm>
 #include <cassert>
 #include <bitset>
+#include <climits>
+#include <cmath>
 #include "cirMgr.h"
 #include "cirGate.h"
 #include "util.h"
@@ -34,33 +36,26 @@ public:
       _gate = g; 
       _value = _gate->getSim();
       if (_value & 1) _value = ~_value;
-      //_isInv = (_value & 1);
    }
    ~SimNode() {};
 
    size_t operator() () const {
-      //if (_isInv) return ~_value;
-      //else return _value;
       return _value;
    }
 
    bool operator == (const SimNode& s) const { 
-      //return ((_isInv) ? (~_value == s()) : (_value == s())); 
       return _value == s._value;
    }
 
    SimNode& operator = (const SimNode& s) {
       _gate = s._gate;
       _value = s._value;
-      //_isInv = s._isInv;
       return *this;
    }
-
    
    CirGate* _gate;
 private:
    size_t _value;
-   //bool _isInv;
 };
 
 bool comparefec (CirGate* i, CirGate* j) { return (i->getId() < j->getId()); }
@@ -74,7 +69,34 @@ bool comparefec (CirGate* i, CirGate* j) { return (i->getId() < j->getId()); }
 void
 CirMgr::randomSim()
 {
+   int counter = 0;
+   
+   if (_fecGrps.size() == 0) fecInit();
 
+   for (unsigned fail = 0 ,fn = MaxFail(); fail < fn; counter += 64 ) {
+      unsigned temp = _fecGrps.size();
+      rnGenSim();
+      simulate();
+      identifyFEC();
+      if (temp == _fecGrps.size()) fail++;
+   }
+   
+   UpdateFec();
+
+   cout << counter << " patterns simulated." << endl;
+}
+
+unsigned
+CirMgr::MaxFail()
+{
+   unsigned n = _dfsList.size();
+   //more PI, SAT is more difficult
+   //PO will not affect SAT
+   n = n + _i - _o;
+   if (n > 50) n = (sqrt(n)/4 > 50)? sqrt(n)/4 : 50;
+
+   cout << "MAX_FAIL = " << n << endl;
+   return n;
 }
 
 void
@@ -84,7 +106,9 @@ CirMgr::fileSim(ifstream& patternFile)
    vector<string> ptns;
    ptns.resize(64);
    int counter = 0;
-   fecInit();
+   
+   if (_fecGrps.size() == 0) fecInit();
+   
    while (patternFile >> str) {
       if (!checkerr(str)) return;
       //ptns.push_back(str);
@@ -114,25 +138,7 @@ CirMgr::fileSim(ifstream& patternFile)
       //ptns.clear();
    }
    
-   for (size_t i = 0, in = _fecGrps.size(); i < in; i++ ) {
-      sort( _fecGrps[i].begin(), _fecGrps[i].end(), comparefec);
-   }
-
-   CirGate::setGlobalRef();
-   for (unsigned i = 0, in = _fecGrps.size(); i < in; i++ ) {
-      for (unsigned j = 0, jn = _fecGrps[i].size(); j < jn; j++) {
-         _fecGrps[i][j]->setfec(&_fecGrps[i]);
-         _fecGrps[i][j]->setToGlobalRef();
-      }
-   }
-   for (size_t i = 0; i <= _m; i++) {
-      if(_vidgates[i]) {
-         if(!_vidgates[i]->isGlobalRef()) {
-            _vidgates[i]->setfec(0);
-         }
-      }
-   }
-   
+   UpdateFec();
 
    cout << counter << " patterns simulated." << endl;
 /*for (size_t i = 0; i < _fecGrps.size(); i++) {
@@ -147,18 +153,28 @@ CirMgr::fileSim(ifstream& patternFile)
 /*   Private member functions about Simulation   */
 /*************************************************/
 void
+CirMgr::rnGenSim() 
+{
+   size_t temp = 0;
+   _vidgates[0]->setpisim(temp);
+   for (size_t i = 0; i < _i; i ++) {
+      temp = rnGen( INT_MAX );
+      temp = (temp << 32) + rnGen( INT_MAX );
+      _gates[i]->setpisim(temp);
+   }
+}
+
+void
 CirMgr::fecInit()
 {
-   if (_fecGrps.size() == 0) {
-      GateList initfecGrp;
-      initfecGrp.push_back(_vidgates[0]);
-      for (size_t i = 0, in = _dfsList.size(); i < in; i++) {
-         if (_vidgates[_dfsList[i]]->getTypeStr() == "AIG") {
-            initfecGrp.push_back(_vidgates[_dfsList[i]]);
-         }
+   GateList initfecGrp;
+   initfecGrp.push_back(_vidgates[0]);
+   for (size_t i = 0, in = _dfsList.size(); i < in; i++) {
+      if (_vidgates[_dfsList[i]]->getTypeStr() == "AIG") {
+         initfecGrp.push_back(_vidgates[_dfsList[i]]);
       }
-      _fecGrps.push_back(initfecGrp);
    }
+   _fecGrps.push_back(initfecGrp);
 }
 
 void
@@ -213,18 +229,41 @@ CirMgr::identifyFEC()
    cout << "Total #FEC Group = " << _fecGrps.size() << char(13) << flush;;
 }
 
+void
+CirMgr::UpdateFec()
+{
+   for (size_t i = 0, in = _fecGrps.size(); i < in; i++ ) {
+      sort( _fecGrps[i].begin(), _fecGrps[i].end(), comparefec);
+   }
+
+   CirGate::setGlobalRef();
+   for (unsigned i = 0, in = _fecGrps.size(); i < in; i++ ) {
+      for (unsigned j = 0, jn = _fecGrps[i].size(); j < jn; j++) {
+         _fecGrps[i][j]->setfec(&_fecGrps[i]);
+         _fecGrps[i][j]->setToGlobalRef();
+      }
+   }
+   for (size_t i = 0; i <= _m; i++) {
+      if(_vidgates[i]) {
+         if(!_vidgates[i]->isGlobalRef()) {
+            _vidgates[i]->setfec(0);
+         }
+      }
+   }
+}
 
    
 void 
 CirMgr::ptnToSim (vector<string>& ptns, size_t count) 
 {
-   size_t n = count;
+   size_t n = count, temp = 0;
+   _vidgates[0]->setpisim(temp);//const
    for (size_t i = 0; i < _i; i ++) {
-      size_t temp = 0;
+      temp = 0;
       for (size_t j = 0; j < n; j++) {
          temp = (temp << 1) | (size_t)(ptns[j][i] - '0');
       }
-      _vidgates[i+1]->setpisim(temp);
+      _gates[i]->setpisim(temp);
    }
 
 }

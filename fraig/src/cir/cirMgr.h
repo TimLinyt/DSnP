@@ -30,7 +30,7 @@ public:
 
    // Access functions
    // return '0' if "gid" corresponds to an undefined gate.
-   CirGate* getGate(unsigned gid) const { return _vidgates[gid]; }
+   CirGate* getGate(unsigned gid) const{return (gid <= _m+_o)?_vidgates[gid]:0;}
 
    // Member functions about circuit construction
    bool readCircuit(const string&);
@@ -72,7 +72,10 @@ private:
    void updateDfsList();
    void updateFloating();
    void updateUnused();
-   
+  
+   void rnGenSim();
+   void UpdateFec();
+   unsigned MaxFail();
    void fecInit();
    void identifyFEC();
    void simulate(); 
@@ -80,7 +83,16 @@ private:
    void writeLog(vector<string>& ptns);
    bool checkerr(string & str); 
 
+   //sat
+   void sortFecGrps();
+   void InitSAT(SatSolver& solver);
+   bool proofFECpair(SatSolver& solver, CirGate* g1, CirGate* g2);
    void MergeGate(CirGate* master, CirGate* slave);   
+   void fraigMerge(CirGate* master, CirGate* slave, bool inv);
+   void getSatAssignment(SatSolver& solver, vector<size_t>& ptn, int& count);
+   void deleteinvaildFEC();
+
+
 };
 
 #endif // CIR_MGR_H

@@ -14,9 +14,9 @@ AR        = ar cr
 ECHO      = /bin/echo
 
 CFLAGS = -O3 -m32 -Wall -DTA_KB_SETTING $(PKGFLAG)
-CFLAGS = -g -Wall -DTA_KB_SETTING $(PKGFLAG)
 CFLAGS = -O3 -Wall -DTA_KB_SETTING $(PKGFLAG)
 
+CFLAGS = -g -Wall -DTA_KB_SETTING $(PKGFLAG)
 .PHONY: depend extheader
 
 %.o : %.cpp

@@ -86,6 +86,13 @@ public:
    void setgrpNo(size_t n) { _grpNo = n; }
    unsigned getgrpNo() { return _grpNo; }
    void setfec(GateList* fec) {_fec = fec;}
+
+   //sat
+   void setVar(const Var& v) {_var = v; }
+   Var getVar() { return _var; }
+   void set_d(const unsigned& d) { _d = d; }   
+   unsigned get_d() { return _d; }
+
 private:
 
 protected:
@@ -93,9 +100,9 @@ protected:
    unsigned _vId, _lineno;
    vector<CirGateV>  _in, _out;
    size_t _simResult;
-   unsigned _grpNo;
-   GateList* _fec;   
-
+   unsigned _grpNo, _d;
+   GateList* _fec;
+   Var _var;
 };
 
 class CirPiGate : public CirGate

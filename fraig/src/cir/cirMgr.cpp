@@ -599,9 +599,33 @@ CirMgr::printFloatGates() const
    }
 }
 
+bool compareGrp(pair<unsigned, unsigned> i, pair<unsigned, unsigned> j) {
+   return (i.first < j.first);
+}
+
 void
 CirMgr::printFECPairs() const
 {
+   vector< pair<unsigned, unsigned> > map;
+   for (unsigned i = 0, in = _fecGrps.size(); i < in; i++) { 
+      map.push_back(pair<unsigned, unsigned>(_fecGrps[i][0]->getId(),i));
+   }
+   sort(map.begin(), map.end(), compareGrp);
+
+   bool inv = false;
+   unsigned temp = 0;
+   for (size_t i = 0, in = _fecGrps.size(); i < in; i++) {
+      cout << "[" << i << "] ";
+      temp = map[i].second;
+      inv = (_fecGrps[temp][0]->getSim() & 1);
+      cout << _fecGrps[temp][0]->getId();
+      for (size_t j = 1, jn = _fecGrps[temp].size(); j < jn; j++) {
+         cout << " ";
+         if (inv != (_fecGrps[temp][j]->getSim()&1)) cout << "!";
+         cout << _fecGrps[temp][j]->getId();
+      }
+      cout << endl;
+   }
 }
 
 void
